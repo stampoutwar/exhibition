@@ -215,7 +215,7 @@ function renderLobby() {
     <h2>Choose a hall</h2>
     <p class="lead">The exhibition is arranged as annual editions — each released on Ukraine's
       Independence Day. Enter a hall, wander between countries, and turn the cards over:
-      every one carries a handwritten note from the person who had it cancelled.</p>
+      every one carries a handwritten note from the project organizer about the person who had it cancelled.</p>
     <div class="doors">
       ${doors}
       <a class="door album-door" href="#/album">
