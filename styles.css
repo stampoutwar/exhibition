@@ -211,7 +211,7 @@ a { color: var(--blue); }
 }
 .hero .tagline {
   font-size: clamp(1rem, 1.6vw, 1.2rem); line-height: 1.55; font-weight: 400;
-  color: #78716c; max-width: 46rem; margin: 1.8rem auto 2.2rem;
+  color: #57534e; max-width: 46rem; margin: 1.8rem auto 2.2rem;
 }
 
 /* exhibition byline above the hall doors */
@@ -254,7 +254,7 @@ a { color: var(--blue); }
 }
 .fan a img { width: 100%; height: 100%; object-fit: cover; }
 .fan a:hover {
-  z-index: 5;
+  z-index: 20;
   transform: translateX(calc(-50% + var(--x, 0px) * var(--xf, 1))) rotate(0deg) translateY(-24px) scale(1.08);
 }
 
@@ -293,7 +293,13 @@ a { color: var(--blue); }
   font-family: var(--serif); font-size: clamp(1.5rem, 3vw, 2.1rem); margin: 0 0 .3rem;
 }
 .lobby-doors .lead { color: var(--ink-soft); margin: 0 0 1.6rem; max-width: 52rem; }
-.doors { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.1rem; }
+/* three edition halls per row; the Stamp Album centred on its own row */
+.doors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+.door.album-door { grid-column: 2; }
+@media (max-width: 760px) {
+  .doors { grid-template-columns: 1fr; }
+  .door.album-door { grid-column: auto; }
+}
 .door {
   position: relative; display: block; text-decoration: none; color: var(--ink);
   background: #fff; border-radius: 10px; overflow: hidden;
@@ -322,6 +328,7 @@ a { color: var(--blue); }
   line-height: 1.2; min-height: 2.4em;
 }
 .door-body p { margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.35; min-height: 2.7em; }
+.door-body .nowrap { white-space: nowrap; }
 .door .flagstrip { margin-top: auto; padding-top: .55rem; font-size: 1.05rem; letter-spacing: .12em; overflow: hidden; white-space: nowrap; }
 
 /* how it works */
@@ -384,8 +391,32 @@ a { color: var(--blue); }
   background: rgba(18, 26, 38, .86);
   backdrop-filter: blur(5px);
   display: flex; align-items: center; justify-content: center;
+  overflow-y: auto;               /* content taller than the frame scrolls inside the box */
+  overscroll-behavior: contain;   /* never hand the wheel to the page (or embedding iframe parent) */
 }
 .overlay.hidden { display: none; }
+/* while any shadow box is open, freeze the page behind it */
+html.overlay-open, html.overlay-open body { overflow: hidden; }
+
+/* ===== embedded in an iframe (stampoutwar.com/exhibition/) =====
+   The iframe is resized to the full document height, so there is no local
+   viewport: overlays span the whole document and anchor their content at
+   the visitor's click position (--anchor-y). The parent page keeps scrolling,
+   so the overflow lock must stay off. */
+html.embedded.overlay-open, html.embedded.overlay-open body { overflow: visible; }
+html.embedded .overlay {
+  position: absolute; height: auto; min-height: 100%;
+  overflow: visible; align-items: flex-start;
+}
+html.embedded .viewer-stage,
+html.embedded .stampbox-stage,
+html.embedded .draw-stage { margin: var(--anchor-y, 2rem) auto 3rem; }
+html.embedded .overlay-scroll {
+  height: auto; overflow: visible;
+  padding-top: var(--anchor-y, 2.6rem);
+}
+html.embedded .close-btn { position: absolute; top: calc(var(--anchor-y, 4rem) - 54px); }
+html.embedded .viewer-arrow { position: absolute; top: calc(var(--anchor-y, 1rem) + 230px); }
 .overlay-scroll { width: 100%; height: 100%; overflow-y: auto; padding: 2.6rem 1.4rem 3rem; }
 .close-btn {
   position: fixed; top: .8rem; right: 1rem; z-index: 70;
@@ -419,7 +450,8 @@ a { color: var(--blue); }
 
 /* ===== Card viewer / flip ===== */
 #viewer.overlay, #draw.overlay, #stampbox.overlay { padding: 1rem; }
-.viewer-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 96vw; }
+/* margin:auto centres the stage when it fits, and anchors the top (scrollable) when it doesn't */
+.viewer-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 96vw; margin: auto; }
 .flip-card {
   /* up to the scan's native 1400px, capped by viewport width and height */
   width: min(1400px, 94vw, calc((100vh - 250px) * 1400 / 983));
@@ -460,7 +492,11 @@ a { color: var(--blue); }
 .viewer-arrow.prev { left: 1rem; }
 .viewer-arrow.next { right: 1rem; }
 
-.viewer-stampchip { margin-top: .55rem; display: flex; justify-content: center; }
+.viewer-stampchip {
+  margin-top: .55rem; display: flex; justify-content: center;
+  flex-wrap: wrap; gap: .5rem;
+}
+.viewer-stampchip button.no-img { cursor: default; opacity: .75; }
 .viewer-stampchip button {
   display: flex; align-items: center; gap: .6rem;
   background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.28);
@@ -536,7 +572,7 @@ a { color: var(--blue); }
 }
 .stampbox-frame img { display: block; max-width: 100%; max-height: 56vh; object-fit: contain; }
 
-.stampbox-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 92vw; }
+.stampbox-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 92vw; margin: auto; }
 .stampbox-cards { margin-top: .6rem; display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
 .stampbox-cards button {
   border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.1); color: #fff;
@@ -545,7 +581,7 @@ a { color: var(--blue); }
 .stampbox-cards button:hover { background: rgba(255,255,255,.22); }
 
 /* ===== Draw a card ===== */
-.draw-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.draw-stage { display: flex; flex-direction: column; align-items: center; gap: 1rem; margin: auto; }
 .draw-hint { color: rgba(255,255,255,.75); font-family: var(--hand); font-size: 1.5rem; margin: 0; }
 .draw-card { width: min(86vw, 680px); }
 .draw-cardback { display: flex; }

@@ -102,6 +102,7 @@ function openPassportBook() {
       location.hash = `#/${b.dataset.year}`;
       openVitrine(b.dataset.year, b.dataset.country);
     }));
+  anchorOverlay(passportbox);
   passportbox.classList.remove("hidden");
   passportbox.querySelector(".overlay-scroll").scrollTop = 0;
 }
@@ -114,6 +115,10 @@ function route() {
   document.querySelectorAll("#nav-links a").forEach(a =>
     a.classList.toggle("active", a.dataset.route === hash));
   window.scrollTo(0, 0);
+  // in the iframe embed the parent page owns the scrollbar — ask it to jump
+  // back to the top of the exhibition on every room change
+  if (window.self !== window.top)
+    window.parent.postMessage({ sowExhibitionScrollTop: true }, "*");
   if (hash === "/album") renderAlbum();
   else if (/^\/\d{4}$/.test(hash) && DATA.editions[hash.slice(1)]) renderHall(hash.slice(1));
   else renderLobby();
@@ -160,8 +165,9 @@ function renderLobby() {
   const fanCards = pickRandom(ALL_CARDS, 5);
   const fanHtml = fanCards.map((c, i) => {
     const r = (i - 2) * 6, y = Math.abs(i - 2) * 10, x = (i - 2) * 118;
+    // leftmost card paints on top so each card's right edge (stamp/postmark) stays visible
     return `<a href="#" data-card="${esc(c.year)}|${esc(c.country)}|${esc(c.id)}"
-      style="--r:${r}deg; --y:${y}px; --x:${x}px" title="${esc(c.country)} — look closer">
+      style="--r:${r}deg; --y:${y}px; --x:${x}px; z-index:${fanCards.length - i}" title="${esc(c.country)} — look closer">
       <img src="${imgPath(c, "front", "thumb")}" alt="Maxicard from ${esc(c.country)}"></a>`;
   }).join("");
 
@@ -173,7 +179,7 @@ function renderLobby() {
       <div class="door-art"><div class="postmark-deco">24 AUG<br>${y}</div></div>
       <div class="door-body">
         <h3>${editionName(y)}</h3>
-        <p>Edition ${y} · ${ed.countries.length} countries · ${nCards} maxicards</p>
+        <p><span class="nowrap">${y} Edition · ${ed.countries.length} countries</span><br>${nCards} maxicards</p>
         <div class="flagstrip">${flags}</div>
       </div></a>`;
   }).join("");
@@ -212,7 +218,7 @@ function renderLobby() {
       every one carries a handwritten note from the person who had it cancelled.</p>
     <div class="doors">
       ${doors}
-      <a class="door" href="#/album">
+      <a class="door album-door" href="#/album">
         <div class="door-art album-art"><div class="postmark-deco">97<br>STAMPS</div></div>
         <div class="door-body">
           <h3>The Stamp Album</h3>
@@ -344,6 +350,7 @@ function openVitrine(year, countryName) {
           </span>
         </button>`).join("")}
     </div>`;
+  anchorOverlay(vitrine);
   vitrine.classList.remove("hidden");
   vitrine.querySelector(".overlay-scroll").scrollTop = 0;
   vitrine.querySelectorAll(".vcard").forEach(b =>
@@ -358,6 +365,7 @@ let viewerList = [], viewerIdx = 0;
 function openViewer(list, idx) {
   viewerList = list;
   viewerIdx = idx;
+  anchorOverlay(viewer);
   viewer.classList.remove("hidden");
   showCard();
 }
@@ -374,15 +382,28 @@ function showCard() {
     `${card.town ? `Cancelled in <b>${esc(card.town)}</b> on 24 August ${esc(card.year)}` : `${esc(card.year)} · ${esc(editionName(card.year))}`}` +
     (card.participant ? ` &nbsp;·&nbsp; <span class="hand">with the help of ${esc(card.participant)}</span>` : "");
   const chip = document.getElementById("viewer-stampchip");
-  if (card.stamp) {
-    chip.innerHTML = `<button title="Open this stamp in the album">
-      ${card.stampImg ? `<img src="${esc(card.stampImg)}" alt="">` : ""}
+  const imgs = card.stampImgs || [];
+  if (imgs.length) {
+    // one chip per stamp on the card, each with its own title and catalogue
+    chip.innerHTML = imgs.map(img => {
+      const s = STAMP_BY_IMG.get(img);
+      const title = s ? `${s.title}${s.stampYear ? ` (${s.stampYear})` : ""}`
+        : `${card.stamp}${card.stampYear ? ` (${card.stampYear})` : ""}`;
+      const cat = s ? s.cat : card.stampCat;
+      return `<button data-img="${esc(img)}" title="Open this stamp in the album">
+        <img src="${esc(img)}" alt="">
+        <span>🌻 ${esc(title)}${cat ? `<br>${esc(cat)}` : ""}</span>
+      </button>`;
+    }).join("");
+    chip.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+      const s = STAMP_BY_IMG.get(b.dataset.img);
+      if (s) openStampbox(s);
+    }));
+  } else if (card.stamp) {
+    // stamp known but no clean crop exists
+    chip.innerHTML = `<button class="no-img" disabled>
       <span>🌻 ${esc(card.stamp)}${card.stampYear ? ` (${esc(card.stampYear)})` : ""}${card.stampCat ? `<br>${esc(card.stampCat)}` : ""}</span>
     </button>`;
-    chip.firstElementChild.addEventListener("click", () => {
-      const s = STAMP_BY_IMG.get(card.stampImg);
-      if (s) { openStampbox(s); }
-    });
   } else chip.innerHTML = "";
   document.getElementById("viewer-prev").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
   document.getElementById("viewer-next").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
@@ -475,6 +496,7 @@ function openStampbox(s) {
     const idx = ALL_CARDS.findIndex(c => c.id === ref.id && c.country === ref.country && c.year === s.year);
     if (idx >= 0) { stampbox.classList.add("hidden"); openViewer(ALL_CARDS, idx); }
   }));
+  anchorOverlay(stampbox);
   stampbox.classList.remove("hidden");
 }
 
@@ -495,6 +517,7 @@ function dealCard() {
   }, 650);
 }
 document.getElementById("draw-btn").addEventListener("click", () => {
+  anchorOverlay(draw);
   draw.classList.remove("hidden");
   dealCard();
 });
@@ -524,6 +547,38 @@ document.addEventListener("keydown", e => {
     }
   }
 });
+
+/* ---- iframe embedding (stampoutwar.com/exhibition/) ----
+   Report our real height to the embedding page so the iframe can grow to fit
+   and the parent page becomes the only scroller (kills the double-scrollbar
+   freeze). The parent listens for this message and resizes the iframe. */
+const EMBEDDED = (() => { try { return window.self !== window.top; } catch { return true; } })();
+if (EMBEDDED) {
+  document.documentElement.classList.add("embedded");
+  const postHeight = () => window.parent.postMessage(
+    { sowExhibitionHeight: document.documentElement.scrollHeight }, "*");
+  new ResizeObserver(postHeight).observe(document.documentElement);
+  window.addEventListener("load", postHeight);
+}
+
+/* In a full-height iframe there is no local viewport, so overlays anchor to
+   where the visitor clicked instead of centring in the (huge) document. */
+let lastPointerY = 0;
+window.addEventListener("pointerdown", e => { lastPointerY = e.pageY; }, true);
+function anchorOverlay(ov) {
+  if (!EMBEDDED) return;
+  ov.style.setProperty("--anchor-y", `${Math.max(16, lastPointerY - 220)}px`);
+}
+
+/* ---- page scroll lock while any overlay is open ---- */
+(function lockPageBehindOverlays() {
+  const overlays = document.querySelectorAll(".overlay");
+  const sync = () => document.documentElement.classList.toggle("overlay-open",
+    [...overlays].some(o => !o.classList.contains("hidden")));
+  const mo = new MutationObserver(sync);
+  overlays.forEach(o => mo.observe(o, { attributes: true, attributeFilter: ["class"] }));
+  sync();
+})();
 
 /* ---- go ---- */
 renderPassport();
