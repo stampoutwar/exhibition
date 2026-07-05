@@ -587,16 +587,23 @@ html.embedded .viewer-arrow { position: absolute; top: calc(var(--anchor-y, 1rem
 .draw-cardback { display: flex; }
 .draw-cardback-art {
   flex: 1; display: flex; flex-direction: column;
-  border: 3px dashed rgba(255,255,255,.7); border-radius: 4px; margin: 8px;
-  overflow: hidden;
+  border-radius: 4px; margin: 8px; overflow: hidden;
 }
-.draw-cardback-art .sky { flex: 1; background: var(--blue); }
-.draw-cardback-art .field { flex: 1; background: var(--yellow); }
-.draw-cardback-art .label {
-  padding: .4rem 0; text-align: center;
-  font-family: var(--serif); font-weight: 900; font-size: 1.5rem; letter-spacing: .28em;
-  text-transform: uppercase; color: var(--ink); background: var(--paper);
-  line-height: 1.5;
+.draw-cardback-art .half {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  text-align: center; line-height: 1.05;
+  font-family: var(--serif); font-weight: 900; text-transform: uppercase;
+  letter-spacing: .22em; font-size: clamp(1.6rem, 6vw, 2.8rem);
+}
+/* blue field, yellow lettering (Ukrainian-flag scheme) */
+.draw-cardback-art .sky {
+  background: var(--blue); color: var(--yellow);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+/* golden field, blue lettering */
+.draw-cardback-art .field {
+  background: var(--yellow); color: var(--blue);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, .45);
 }
 .draw-actions { display: flex; gap: .7rem; justify-content: center; }
 
