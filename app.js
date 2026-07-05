@@ -233,9 +233,9 @@ function renderLobby() {
       <p>A maxicard reaches <b>maximum concordance</b> when three things agree:
         the picture on the postcard, the stamp on the picture side, and the postmark that cancels it.</p>
       <p class="hand">Here: a field photographed in Prince Edward Island, Canada — a sunflower or
-        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend could stamp it.</p>
-      <p>Each card becomes a permanent historical record of solidarity. The originals are auctioned
-        to support Ukrainian refugee relief.</p>
+        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend could have it postmarked.</p>
+      <p>Each card becomes a permanent historical record of solidarity. The cards are auctioned
+        to support Ukrainian relief.</p>
     </div>
   </section>`;
 
