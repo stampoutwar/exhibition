@@ -215,7 +215,7 @@ function renderLobby() {
     <h2>Choose a hall</h2>
     <p class="lead">The exhibition is arranged as annual editions — each released on Ukraine's
       Independence Day. Enter a hall, wander between countries, and turn the cards over:
-      every one carries a handwritten note from the project organizer about the person who had it cancelled.</p>
+      every one carries a handwritten note from the person who had it cancelled.</p>
     <div class="doors">
       ${doors}
       <a class="door album-door" href="#/album">
@@ -233,9 +233,9 @@ function renderLobby() {
       <p>A maxicard reaches <b>maximum concordance</b> when three things agree:
         the picture on the postcard, the stamp on the picture side, and the postmark that cancels it.</p>
       <p class="hand">Here: a field photographed in Prince Edward Island, Canada — a sunflower or
-        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend could have it postmarked.</p>
-      <p>Each card becomes a permanent historical record of solidarity. The cards are auctioned
-        to support Ukrainian relief.</p>
+        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend could stamp it.</p>
+      <p>Each card becomes a permanent historical record of solidarity. The originals are auctioned
+        to support Ukrainian refugee relief.</p>
     </div>
   </section>`;
 
@@ -561,13 +561,19 @@ if (EMBEDDED) {
   window.addEventListener("load", postHeight);
 }
 
-/* In a full-height iframe there is no local viewport, so overlays anchor to
-   where the visitor clicked instead of centring in the (huge) document. */
+/* In a full-height iframe there is no local viewport, so an overlay is placed
+   near the click (the only spot we know is on-screen) and the embedding page is
+   asked to scroll so the content sits a fixed gap below the viewport top. That
+   makes EVERY overlay open at the same vertical position with little empty
+   space above, regardless of where the visitor clicked. */
+const OVERLAY_TOP_GAP = 56; // px between viewport top and overlay content
 let lastPointerY = 0;
 window.addEventListener("pointerdown", e => { lastPointerY = e.pageY; }, true);
 function anchorOverlay(ov) {
   if (!EMBEDDED) return;
-  ov.style.setProperty("--anchor-y", `${Math.max(16, lastPointerY - 220)}px`);
+  const y = Math.max(72, Math.round(lastPointerY));
+  ov.style.setProperty("--anchor-y", `${y}px`);
+  window.parent.postMessage({ sowExhibitionScrollTo: y - OVERLAY_TOP_GAP }, "*");
 }
 
 /* ---- page scroll lock while any overlay is open ---- */

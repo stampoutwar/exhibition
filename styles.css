@@ -400,9 +400,11 @@ html.overlay-open, html.overlay-open body { overflow: hidden; }
 
 /* ===== embedded in an iframe (stampoutwar.com/exhibition/) =====
    The iframe is resized to the full document height, so there is no local
-   viewport: overlays span the whole document and anchor their content at
-   the visitor's click position (--anchor-y). The parent page keeps scrolling,
-   so the overflow lock must stay off. */
+   viewport: overlays span the whole document and place their content at
+   --anchor-y (set by JS just below the click). The parent page is then asked
+   to scroll so the content sits ~56px below the viewport top, so every overlay
+   opens at the same height with minimal empty space. The overflow lock stays
+   off because the parent is the scroller. */
 html.embedded.overlay-open, html.embedded.overlay-open body { overflow: visible; }
 html.embedded .overlay {
   position: absolute; height: auto; min-height: 100%;
@@ -415,8 +417,9 @@ html.embedded .overlay-scroll {
   height: auto; overflow: visible;
   padding-top: var(--anchor-y, 2.6rem);
 }
-html.embedded .close-btn { position: absolute; top: calc(var(--anchor-y, 4rem) - 54px); }
-html.embedded .viewer-arrow { position: absolute; top: calc(var(--anchor-y, 1rem) + 230px); }
+/* close button tucked just above the content, still inside the viewport */
+html.embedded .close-btn { position: absolute; top: calc(var(--anchor-y, 4rem) - 44px); }
+html.embedded .viewer-arrow { position: absolute; top: calc(var(--anchor-y, 1rem) + 220px); }
 .overlay-scroll { width: 100%; height: 100%; overflow-y: auto; padding: 2.6rem 1.4rem 3rem; }
 .close-btn {
   position: fixed; top: .8rem; right: 1rem; z-index: 70;
