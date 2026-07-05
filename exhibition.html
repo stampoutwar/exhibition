@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>One field, one flag: the world’s postmarks for Ukraine — Stamp Out War</title>
+<meta name="description" content="An interactive exhibition of the Stamp Out War project: maxicards, stamps and postmarks from around the world in solidarity with Ukraine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,900;1,500;1,600&family=Inter:wght@300;400;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="media/sow-icon.png">
+</head>
+<body>
+
+<nav id="topbar">
+  <a href="https://stampoutwar.com/" target="_blank" rel="noopener" class="brand" title="Stamp Out War — project homepage">
+    <img class="brand-icon" src="media/sow-icon.png" alt="Stamp Out War dove">
+    <span class="brand-name">Stamp&nbsp;Out&nbsp;War</span>
+  </a>
+  <div class="nav-links" id="nav-links">
+    <a href="#/" data-route="/">Lobby</a>
+    <!-- edition links injected -->
+    <a href="#/album" data-route="/album">Stamp Album</a>
+  </div>
+  <div class="nav-right">
+    <button id="draw-btn" title="Draw a random maxicard from the whole collection">🎴 Draw a card</button>
+    <button id="passport" title="Open your Visitor's Passport">🛂 <span class="passport-label">Visitor's&nbsp;Passport</span> <b id="passport-count">0</b></button>
+  </div>
+</nav>
+
+<main id="view"><!-- views rendered here --></main>
+
+<footer id="footer">
+  <p>An interactive exhibition of the <a href="https://stampoutwar.com/" target="_blank" rel="noopener">Stamp Out War</a> project.
+  Maxicard auctions support Ukrainian relief. 🇺🇦</p>
+</footer>
+
+<!-- Country vitrine overlay -->
+<div id="vitrine" class="overlay hidden" role="dialog" aria-modal="true">
+  <div class="overlay-scroll">
+    <button class="close-btn" data-close>&times;</button>
+    <div id="vitrine-content"></div>
+  </div>
+</div>
+
+<!-- Card viewer overlay -->
+<div id="viewer" class="overlay hidden" role="dialog" aria-modal="true">
+  <button class="close-btn" data-close>&times;</button>
+  <button class="viewer-arrow prev" id="viewer-prev" title="Previous card">‹</button>
+  <div class="viewer-stage">
+    <div class="flip-card" id="flip-card" title="Click to turn the card over">
+      <div class="flip-inner">
+        <div class="flip-face flip-front"><img id="viewer-front" alt="Maxicard front"></div>
+        <div class="flip-face flip-back"><img id="viewer-back" alt="Maxicard back — handwritten cancellation note"></div>
+      </div>
+    </div>
+    <div class="viewer-caption">
+      <div class="viewer-title" id="viewer-title"></div>
+      <div class="viewer-sub" id="viewer-sub"></div>
+      <div class="viewer-stampchip" id="viewer-stampchip"></div>
+      <button id="flip-btn">↻ Turn the card over</button>
+    </div>
+  </div>
+  <button class="viewer-arrow next" id="viewer-next" title="Next card">›</button>
+</div>
+
+<!-- Stamp lightbox -->
+<div id="stampbox" class="overlay hidden" role="dialog" aria-modal="true">
+  <button class="close-btn" data-close>&times;</button>
+  <div class="stampbox-stage">
+    <div class="stampbox-frame"><img id="stampbox-img" alt="Stamp"></div>
+    <div class="viewer-caption">
+      <div class="viewer-title" id="stampbox-title"></div>
+      <div class="viewer-sub" id="stampbox-sub"></div>
+      <div class="stampbox-cards" id="stampbox-cards"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Visitor's Passport overlay -->
+<div id="passportbox" class="overlay hidden" role="dialog" aria-modal="true">
+  <div class="overlay-scroll">
+    <button class="close-btn" data-close>&times;</button>
+    <div class="passport-book">
+      <div class="passport-cover">
+        <span class="emblem">🕊️</span>
+        <h2>Visitor's Passport</h2>
+        <p>Stamp Out War · Interactive Exhibition</p>
+      </div>
+      <div class="passport-pages" id="passport-pages"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Draw-a-card overlay -->
+<div id="draw" class="overlay hidden" role="dialog" aria-modal="true">
+  <button class="close-btn" data-close>&times;</button>
+  <div class="draw-stage">
+    <p class="draw-hint">From 259 maxicards, fate deals you…</p>
+    <div class="flip-card draw-card" id="draw-card">
+      <div class="flip-inner">
+        <div class="flip-face flip-front draw-cardback">
+          <div class="draw-cardback-art">
+            <span class="sky"></span>
+            <span class="label">Stamp<br>Out<br>War</span>
+            <span class="field"></span>
+          </div>
+        </div>
+        <div class="flip-face flip-back"><img id="draw-img" alt="Random maxicard"></div>
+      </div>
+    </div>
+    <div class="viewer-caption">
+      <div class="viewer-title" id="draw-title">&nbsp;</div>
+      <div class="draw-actions">
+        <button id="draw-again">🎴 Draw again</button>
+        <button id="draw-open">Look closer ↗</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
