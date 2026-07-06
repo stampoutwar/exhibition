@@ -502,7 +502,10 @@ function openStampbox(s) {
   holder.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     const ref = refs[+b.dataset.i];
     const idx = ALL_CARDS.findIndex(c => c.id === ref.id && c.country === ref.country && c.year === s.year);
-    if (idx >= 0) { closeOverlay(stampbox, true); openViewer(ALL_CARDS, idx); }
+    if (idx >= 0) { 
+      closeOverlay(stampbox, true); 
+      openViewer(ALL_CARDS, idx); 
+    }
   }));
   anchorOverlay(stampbox);
   stampbox.classList.remove("hidden");
@@ -537,25 +540,6 @@ document.getElementById("draw-open").addEventListener("click", () => {
 });
 drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
 
-/* ---- overlay closing ---- */
-document.querySelectorAll(".overlay").forEach(ov => {
-  ov.querySelectorAll("[data-close]").forEach(b =>
-    b.addEventListener("click", () => closeOverlay(ov)));
-  ov.addEventListener("click", e => { if (e.target === ov) closeOverlay(ov); });
-});
-document.addEventListener("keydown", e => {
-  const open = [...document.querySelectorAll(".overlay:not(.hidden)")].pop();
-  if (!open) return;
-  if (e.key === "Escape") closeOverlay(open);
-  if (open === viewer) {
-    if (e.key === "ArrowLeft") stepCard(-1);
-    if (e.key === "ArrowRight") stepCard(1);
-    if (e.key === " " || e.key === "Enter") {
-      if (viewerList[viewerIdx]?.back) { e.preventDefault(); flipCard.classList.toggle("flipped"); }
-    }
-  }
-});
-
 /* ---- iframe embedding (stampoutwar.com/exhibition/) ----
    Report our real height to the embedding page so the iframe can grow to fit
    and the parent page becomes the only scroller (kills the double-scrollbar
@@ -585,7 +569,7 @@ function anchorOverlay(ov) {
   lastAnchorY = y;
   ov.style.setProperty("--anchor-y", `${y}px`);
   
-  // Fix: Add temporary bottom padding so overlays near the page bottom aren't cut off
+  // Force the iframe to stretch down significantly so overlays near the bottom edge aren't sliced off
   document.body.style.paddingBottom = "1200px"; 
   
   window.parent.postMessage({ sowExhibitionScrollTo: y - OVERLAY_TOP_GAP }, "*");
@@ -596,11 +580,30 @@ function closeOverlay(ov, skipScroll = false) {
   if (EMBEDDED) {
     document.body.style.paddingBottom = ""; // Remove artificial expansion
     if (!skipScroll) {
-      // Restore the user's view to roughly where they clicked before the overlay opened
+      // Restore the parent viewport roughly back to where they originally clicked
       window.parent.postMessage({ sowExhibitionScrollTo: Math.max(0, lastAnchorY - OVERLAY_TOP_GAP - 150) }, "*");
     }
   }
 }
+
+/* ---- overlay closing ---- */
+document.querySelectorAll(".overlay").forEach(ov => {
+  ov.querySelectorAll("[data-close]").forEach(b =>
+    b.addEventListener("click", () => closeOverlay(ov)));
+  ov.addEventListener("click", e => { if (e.target === ov) closeOverlay(ov); });
+});
+document.addEventListener("keydown", e => {
+  const open = [...document.querySelectorAll(".overlay:not(.hidden)")].pop();
+  if (!open) return;
+  if (e.key === "Escape") closeOverlay(open);
+  if (open === viewer) {
+    if (e.key === "ArrowLeft") stepCard(-1);
+    if (e.key === "ArrowRight") stepCard(1);
+    if (e.key === " " || e.key === "Enter") {
+      if (viewerList[viewerIdx]?.back) { e.preventDefault(); flipCard.classList.toggle("flipped"); }
+    }
+  }
+});
 
 /* ---- page scroll lock while any overlay is open ---- */
 (function lockPageBehindOverlays() {
