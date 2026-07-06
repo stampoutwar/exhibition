@@ -28,8 +28,15 @@ const imgPath = (card, side, kind = "display") =>
 const esc = s => String(s ?? "").replace(/[&<>"]/g,
   ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
-/* card ids repeat the country ("Ukraine-K01-01") — show just the number part */
-const shortId = card => card.id.replace(/^[A-Za-z_]+-/, "");
+/* card ids repeat the country + edition — show just the number part.
+   handles "Ukraine-K01-01" -> "K01-01", "Australia-01" -> "01",
+   and the 2025 "SOW25_Ukraine01" -> "01" form */
+const stripId = id => (id
+  .replace(/^SOW\d+_/, "")   // drop 2025-style edition prefix
+  .replace(/^[A-Za-z]+/, "") // drop the country word
+  .replace(/^[-_]/, "")      // drop the separator
+  || id);
+const shortId = card => stripId(card.id);
 
 /* ---- passport (visited countries) ---- */
 const PASSPORT_TOTAL = [...COUNTRY_INDEX.keys()].length;
@@ -98,7 +105,7 @@ function openPassportBook() {
   document.getElementById("passport-pages").innerHTML = pages.join("");
   document.querySelectorAll(".pp-stamp").forEach(b =>
     b.addEventListener("click", () => {
-      passportbox.classList.add("hidden");
+      closeOverlay(passportbox, true);
       location.hash = `#/${b.dataset.year}`;
       openVitrine(b.dataset.year, b.dataset.country);
     }));
@@ -151,6 +158,7 @@ const BLURBS = {
   2022: "The first edition. Six months into the full-scale invasion, friends of Ukraine on four continents the first maxicards realised on 24 August 2022 — Ukraine's 31st Independence Day.",
   2023: "The second edition went truly global — from the Andes to South-East Asia, new posts and new flowers joined the field.",
   2024: "The third edition keeps the flame burning: same blue sky, same golden field, ever more postmarks.",
+  2025: "The fourth edition, cancelled on Sunday 24 August 2025 — the rally rolls on, with Algeria joining the field and Ukraine marking the moment.",
 };
 
 function pickRandom(arr, n) {
@@ -490,11 +498,11 @@ function openStampbox(s) {
   const refs = [...s.cards].sort((a, b) => a.country.localeCompare(b.country)
     || a.id.localeCompare(b.id, undefined, { numeric: true }));
   holder.innerHTML = refs.map((c, i) =>
-    `<button data-i="${i}">${esc(c.country)} № ${esc(c.id.replace(/^[A-Za-z_]+-/, ""))}</button>`).join("");
+    `<button data-i="${i}">${esc(c.country)} № ${esc(stripId(c.id))}</button>`).join("");
   holder.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
     const ref = refs[+b.dataset.i];
     const idx = ALL_CARDS.findIndex(c => c.id === ref.id && c.country === ref.country && c.year === s.year);
-    if (idx >= 0) { stampbox.classList.add("hidden"); openViewer(ALL_CARDS, idx); }
+    if (idx >= 0) { closeOverlay(stampbox, true); openViewer(ALL_CARDS, idx); }
   }));
   anchorOverlay(stampbox);
   stampbox.classList.remove("hidden");
@@ -524,7 +532,7 @@ document.getElementById("draw-btn").addEventListener("click", () => {
 document.getElementById("draw-again").addEventListener("click", dealCard);
 document.getElementById("draw-open").addEventListener("click", () => {
   if (!drawn) return;
-  draw.classList.add("hidden");
+  closeOverlay(draw, true);
   openViewer(ALL_CARDS, ALL_CARDS.indexOf(drawn));
 });
 drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
@@ -532,13 +540,13 @@ drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
 /* ---- overlay closing ---- */
 document.querySelectorAll(".overlay").forEach(ov => {
   ov.querySelectorAll("[data-close]").forEach(b =>
-    b.addEventListener("click", () => ov.classList.add("hidden")));
-  ov.addEventListener("click", e => { if (e.target === ov) ov.classList.add("hidden"); });
+    b.addEventListener("click", () => closeOverlay(ov)));
+  ov.addEventListener("click", e => { if (e.target === ov) closeOverlay(ov); });
 });
 document.addEventListener("keydown", e => {
   const open = [...document.querySelectorAll(".overlay:not(.hidden)")].pop();
   if (!open) return;
-  if (e.key === "Escape") open.classList.add("hidden");
+  if (e.key === "Escape") closeOverlay(open);
   if (open === viewer) {
     if (e.key === "ArrowLeft") stepCard(-1);
     if (e.key === "ArrowRight") stepCard(1);
@@ -568,12 +576,30 @@ if (EMBEDDED) {
    space above, regardless of where the visitor clicked. */
 const OVERLAY_TOP_GAP = 56; // px between viewport top and overlay content
 let lastPointerY = 0;
+let lastAnchorY = 0;
 window.addEventListener("pointerdown", e => { lastPointerY = e.pageY; }, true);
+
 function anchorOverlay(ov) {
   if (!EMBEDDED) return;
   const y = Math.max(72, Math.round(lastPointerY));
+  lastAnchorY = y;
   ov.style.setProperty("--anchor-y", `${y}px`);
+  
+  // Fix: Add temporary bottom padding so overlays near the page bottom aren't cut off
+  document.body.style.paddingBottom = "1200px"; 
+  
   window.parent.postMessage({ sowExhibitionScrollTo: y - OVERLAY_TOP_GAP }, "*");
+}
+
+function closeOverlay(ov, skipScroll = false) {
+  ov.classList.add("hidden");
+  if (EMBEDDED) {
+    document.body.style.paddingBottom = ""; // Remove artificial expansion
+    if (!skipScroll) {
+      // Restore the user's view to roughly where they clicked before the overlay opened
+      window.parent.postMessage({ sowExhibitionScrollTo: Math.max(0, lastAnchorY - OVERLAY_TOP_GAP - 150) }, "*");
+    }
+  }
 }
 
 /* ---- page scroll lock while any overlay is open ---- */
