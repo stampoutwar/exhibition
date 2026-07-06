@@ -148,7 +148,7 @@ const editionName = year => EDITION_NAMES[year] || `Edition ${year}`;
 
 /* ---- lobby ---- */
 const BLURBS = {
-  2022: "The first edition. Six months into the full-scale invasion, friends of Ukraine on four continents cancelled the first maxicards on 24 August 2022 — Ukraine's 31st Independence Day.",
+  2022: "The first edition. Six months into the full-scale invasion, friends of Ukraine on four continents the first maxicards realised on 24 August 2022 — Ukraine's 31st Independence Day.",
   2023: "The second edition went truly global — from the Andes to South-East Asia, new posts and new flowers joined the field.",
   2024: "The third edition keeps the flame burning: same blue sky, same golden field, ever more postmarks.",
 };
