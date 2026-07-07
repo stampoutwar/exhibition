@@ -531,55 +531,73 @@ drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
 const EMBEDDED = (() => { try { return window.self !== window.top; } catch { return true; } })();
 if (EMBEDDED) {
   document.documentElement.classList.add("embedded");
+  // Report the CONTENT height, not documentElement.scrollHeight: scrollHeight
+  // is floored at the viewport (= iframe) height, so the iframe could only
+  // ever grow, never shrink back when a small focus view opens.
   const postHeight = () => window.parent.postMessage(
-    { sowExhibitionHeight: document.documentElement.scrollHeight }, "*");
-  new ResizeObserver(postHeight).observe(document.documentElement);
+    { sowExhibitionHeight: Math.ceil(document.body.getBoundingClientRect().height) + 1 }, "*");
+  new ResizeObserver(postHeight).observe(document.body);
   window.addEventListener("load", postHeight);
 }
 
-let lastPointerY = 0;
+/* ===== Focus Mode (view swap) =====
+   Opening a shadow box hides the whole exhibition and makes the overlay the
+   document content itself, so the page (and the embedding iframe) is exactly
+   as tall as what is on show. Overlays form a stack: opening the card viewer
+   from a vitrine hides the vitrine and brings it back on close. Closing the
+   last overlay restores the exhibition and returns the visitor to where they
+   clicked. */
+const overlayStack = [];
+let lastPointerY = 0;   // where the visitor last clicked on the exhibition view
+let focusReturnY = 0;   // remembered when entering focus mode
 
-// Track the user's scroll position strictly on the main exhibition view
+// Track clicks only on the main exhibition view (not inside a shadow box)
 window.addEventListener("pointerdown", e => {
-  if (!document.documentElement.classList.contains("modal-active")) {
+  if (!document.documentElement.classList.contains("modal-active"))
     lastPointerY = e.pageY;
-  }
 }, true);
 
-function openOverlay(ov) {
-  // Store where the user clicked so we can return them to that visual region later
-  ov.dataset.returnY = lastPointerY;
-  
-  // Hide the exhibition and show the modal
-  document.documentElement.classList.add("modal-active");
-  ov.classList.remove("hidden");
+/* The parent resizes the iframe from our height messages. A scroll command
+   sent in the same beat would be clamped against the OLD page height, so defer
+   it two frames: the ResizeObserver posts the new height in between. */
+function postAfterResize(msg) {
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    window.parent.postMessage(msg, "*")));
+}
 
-  // Center the view on the modal
+function showTop() {
   window.scrollTo(0, 0);
-  if (EMBEDDED) {
-    // Instruct the parent page to jump back to the top of the iframe to see the newly opened viewer
-    window.parent.postMessage({ sowExhibitionScrollTop: true }, "*");
+  if (EMBEDDED) postAfterResize({ sowExhibitionScrollTop: true });
+}
+
+function openOverlay(ov) {
+  const i = overlayStack.indexOf(ov);
+  if (i >= 0) overlayStack.splice(i, 1);          // re-opening: move to top
+  if (overlayStack.length) {
+    overlayStack[overlayStack.length - 1].classList.add("hidden");
+  } else {
+    focusReturnY = lastPointerY;                  // entering focus mode
+    document.documentElement.classList.add("modal-active");
   }
+  overlayStack.push(ov);
+  ov.classList.remove("hidden");
+  showTop();
 }
 
 function closeOverlay(ov, skipScroll = false) {
   ov.classList.add("hidden");
-  
-  // Check if any other overlays are still open (e.g. transitioning from Stampbox directly to Viewer)
-  const anyOpen = document.querySelectorAll(".overlay:not(.hidden)").length > 0;
-  
-  if (!anyOpen) {
-    // Restore the exhibition view
+  const i = overlayStack.indexOf(ov);
+  if (i >= 0) overlayStack.splice(i, 1);
+  if (overlayStack.length) {
+    // reveal the overlay underneath (e.g. viewer -> back to the vitrine)
+    overlayStack[overlayStack.length - 1].classList.remove("hidden");
+    showTop();
+  } else {
     document.documentElement.classList.remove("modal-active");
-    
     if (!skipScroll) {
-      const returnY = Number(ov.dataset.returnY) || 0;
-      // Scroll the local document back
-      window.scrollTo(0, Math.max(0, returnY - 150));
-      // Instruct the parent page to gracefully scroll back down to the row the user clicked
-      if (EMBEDDED) {
-        window.parent.postMessage({ sowExhibitionScrollTo: Math.max(0, returnY - 150) }, "*");
-      }
+      const y = Math.max(0, focusReturnY - 150);
+      window.scrollTo(0, y);   // back to the spot the visitor clicked
+      if (EMBEDDED) postAfterResize({ sowExhibitionScrollTo: y });
     }
   }
 }
@@ -591,7 +609,7 @@ document.querySelectorAll(".overlay").forEach(ov => {
 });
 
 document.addEventListener("keydown", e => {
-  const open = [...document.querySelectorAll(".overlay:not(.hidden)")].pop();
+  const open = overlayStack[overlayStack.length - 1];
   if (!open) return;
   if (e.key === "Escape") closeOverlay(open);
   if (open === viewer) {
