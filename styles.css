@@ -640,23 +640,21 @@ html.embedded .stampbox-frame img { max-height: none; }
   .viewer-arrow.next { right: .3rem; }
 }
 
-/* narrow mobile: stack the brand into 3 lines; actions sit beside it,
-   the nav links take a centred full-width row below */
+/* narrow mobile: no brand (the site's own menu is at the bottom of the page);
+   every nav item becomes a direct flex child of the bar and wraps into two
+   tight centred rows: Lobby + years, then Stamp Album + actions */
 @media (max-width: 560px) {
-  #topbar { flex-wrap: wrap; align-items: center; gap: .35rem .5rem; padding: .5rem .75rem; }
-  .brand { gap: .5rem; }
-  .brand-name {
-    display: inline-flex; flex-direction: column; white-space: normal;
-    line-height: 1; font-size: 1rem; letter-spacing: .04em;
+  .brand { display: none; }
+  #topbar {
+    flex-wrap: wrap; justify-content: center; align-items: center;
+    gap: .3rem .3rem; padding: .5rem .5rem .55rem;
   }
-  .nav-right { margin-left: auto; gap: .4rem; }
-  #draw-btn { white-space: nowrap; padding: .34rem .62rem; font-size: .8rem; }
-  #passport { padding: .32rem .6rem; font-size: .8rem; }
-  .nav-links {
-    order: 3; flex-basis: 100%; width: 100%;
-    justify-content: center; gap: .2rem .3rem; margin-top: .05rem;
-  }
-  .nav-links a { padding: .28rem .5rem; font-size: .82rem; flex: 0 0 auto; }
+  .nav-links, .nav-right { display: contents; }
+  .nav-links a { order: 1; padding: .28rem .55rem; font-size: .86rem; flex: 0 0 auto; }
+  /* second row: album link + the two action buttons */
+  .nav-links a[data-route="/album"] { order: 2; }
+  #draw-btn { order: 2; white-space: nowrap; padding: .3rem .6rem; font-size: .8rem; margin-left: .3rem; }
+  #passport { order: 2; padding: .28rem .55rem; font-size: .8rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }

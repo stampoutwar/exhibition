@@ -529,15 +529,32 @@ document.getElementById("draw-open").addEventListener("click", () => {
 drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
 
 const EMBEDDED = (() => { try { return window.self !== window.top; } catch { return true; } })();
+let forcePostHeight = () => {};   // assigned below when embedded
 if (EMBEDDED) {
   document.documentElement.classList.add("embedded");
   // Report the CONTENT height, not documentElement.scrollHeight: scrollHeight
   // is floored at the viewport (= iframe) height, so the iframe could only
   // ever grow, never shrink back when a small focus view opens.
-  const postHeight = () => window.parent.postMessage(
-    { sowExhibitionHeight: Math.ceil(document.body.getBoundingClientRect().height) + 1 }, "*");
-  new ResizeObserver(postHeight).observe(document.body);
-  window.addEventListener("load", postHeight);
+  //
+  // iOS Safari throttles ResizeObserver and rAF inside iframes during scroll
+  // momentum or when the iframe is off-screen, so a single missed message left
+  // the iframe stuck at a stale (huge) height. The reporter is therefore
+  // self-healing: it re-checks on a heartbeat and posts whenever the height it
+  // last announced no longer matches reality.
+  let lastPosted = 0;
+  const measure = () => Math.ceil(document.body.getBoundingClientRect().height) + 1;
+  const postHeight = force => {
+    const h = measure();
+    if (force || h !== lastPosted) {
+      lastPosted = h;
+      window.parent.postMessage({ sowExhibitionHeight: h }, "*");
+    }
+  };
+  forcePostHeight = () => postHeight(true);
+  new ResizeObserver(() => postHeight()).observe(document.body);
+  ["load", "pageshow", "resize", "orientationchange", "visibilitychange"]
+    .forEach(ev => window.addEventListener(ev, () => postHeight(true)));
+  setInterval(() => postHeight(), 700);   // heartbeat: heals any dropped message
 }
 
 /* ===== Focus Mode (view swap) =====
@@ -559,10 +576,11 @@ window.addEventListener("pointerdown", e => {
 
 /* The parent resizes the iframe from our height messages. A scroll command
    sent in the same beat would be clamped against the OLD page height, so defer
-   it two frames: the ResizeObserver posts the new height in between. */
+   it until the new height has been announced. A timer is used rather than
+   requestAnimationFrame because iOS Safari pauses rAF in off-screen iframes. */
 function postAfterResize(msg) {
-  requestAnimationFrame(() => requestAnimationFrame(() =>
-    window.parent.postMessage(msg, "*")));
+  forcePostHeight();   // announce the new height right now (layout is current)
+  setTimeout(() => window.parent.postMessage(msg, "*"), 150);
 }
 
 function showTop() {
