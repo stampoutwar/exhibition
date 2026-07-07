@@ -560,6 +560,9 @@ if (EMBEDDED) {
   // check a dropped message left the iframe stuck: the height hadn't changed,
   // so the reporter never spoke up again.
   setInterval(() => {
+    // the embedded document must never be internally scrolled: iOS keeps a
+    // transient internal offset forever (content shifted up, blank bottom)
+    if (window.scrollY > 0) window.scrollTo(0, 0);
     const h = measure();
     if (h !== lastPosted || Math.abs(window.innerHeight - h) > 2) postHeight(true);
   }, 700);
@@ -583,12 +586,18 @@ window.addEventListener("pointerdown", e => {
 }, true);
 
 /* The parent resizes the iframe from our height messages. A scroll command
-   sent in the same beat would be clamped against the OLD page height, so defer
-   it until the new height has been announced. A timer is used rather than
-   requestAnimationFrame because iOS Safari pauses rAF in off-screen iframes. */
+   sent in the same beat would be clamped against the OLD page height, so it is
+   deferred — and because iOS drops messages mid-scroll, it is retried a few
+   times with the height re-announced first. Retries are idempotent (same
+   target position). Timers, not rAF: iOS pauses rAF in off-screen iframes. */
 function postAfterResize(msg) {
   forcePostHeight();   // announce the new height right now (layout is current)
-  setTimeout(() => window.parent.postMessage(msg, "*"), 150);
+  for (const delay of [150, 700, 1500]) {
+    setTimeout(() => {
+      forcePostHeight();
+      window.parent.postMessage(msg, "*");
+    }, delay);
+  }
 }
 
 function showTop() {
@@ -622,8 +631,15 @@ function closeOverlay(ov, skipScroll = false) {
     document.documentElement.classList.remove("modal-active");
     if (!skipScroll) {
       const y = Math.max(0, focusReturnY - 150);
-      window.scrollTo(0, y);   // back to the spot the visitor clicked
-      if (EMBEDDED) postAfterResize({ sowExhibitionScrollTo: y });
+      if (EMBEDDED) {
+        // NEVER scroll the local document here: while the parent has not yet
+        // applied the new height, the iframe doc is briefly scrollable, and
+        // iOS WebKit keeps that internal offset forever (content shifted up,
+        // blank band at the bottom). The parent does the scrolling instead.
+        postAfterResize({ sowExhibitionScrollTo: y });
+      } else {
+        window.scrollTo(0, y);   // standalone: back to the spot they clicked
+      }
     }
   }
 }
