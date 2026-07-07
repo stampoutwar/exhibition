@@ -38,7 +38,6 @@ const stripId = id => (id
   || id);
 const shortId = card => stripId(card.id);
 
-/* ---- passport (visited countries) ---- */
 const PASSPORT_TOTAL = [...COUNTRY_INDEX.keys()].length;
 let passport = new Set(JSON.parse(localStorage.getItem("sow-passport") || "[]"));
 function stampPassport(year, country) {
@@ -67,7 +66,6 @@ function renderPassport() {
     document.getElementById("passport").firstChild.textContent = "🏆 ";
 }
 
-/* ---- passport book overlay ---- */
 const passportbox = document.getElementById("passportbox");
 function openPassportBook() {
   const pct = Math.round(100 * passport.size / PASSPORT_TOTAL);
@@ -109,13 +107,12 @@ function openPassportBook() {
       location.hash = `#/${b.dataset.year}`;
       openVitrine(b.dataset.year, b.dataset.country);
     }));
-  anchorOverlay(passportbox);
-  passportbox.classList.remove("hidden");
+  
+  openOverlay(passportbox);
   passportbox.querySelector(".overlay-scroll").scrollTop = 0;
 }
 document.getElementById("passport").addEventListener("click", openPassportBook);
 
-/* ---- routing ---- */
 const view = document.getElementById("view");
 function route() {
   const hash = location.hash.replace(/^#/, "") || "/";
@@ -153,7 +150,6 @@ const EDITION_NAMES = {
 };
 const editionName = year => EDITION_NAMES[year] || `Edition ${year}`;
 
-/* ---- lobby ---- */
 const BLURBS = {
   2022: "The first edition. Six months into the full-scale invasion, friends of Ukraine on four continents the first maxicards realised on 24 August 2022 — Ukraine's 31st Independence Day.",
   2023: "The second edition went truly global — from the Andes to South-East Asia, new posts and new flowers joined the field.",
@@ -272,7 +268,6 @@ function renderLobby() {
   }));
 }
 
-/* ---- hall ---- */
 const CONT_ORDER = ["Europe", "North America", "South America", "Asia", "Africa", "Oceania"];
 function renderHall(year) {
   const ed = DATA.editions[year];
@@ -331,7 +326,6 @@ function renderHall(year) {
     b.addEventListener("click", () => openVitrine(year, b.dataset.country)));
 }
 
-/* ---- vitrine ---- */
 const vitrine = document.getElementById("vitrine");
 function openVitrine(year, countryName) {
   const c = COUNTRY_INDEX.get(`${year}|${countryName}`);
@@ -358,14 +352,13 @@ function openVitrine(year, countryName) {
           </span>
         </button>`).join("")}
     </div>`;
-  anchorOverlay(vitrine);
-  vitrine.classList.remove("hidden");
+  
+  openOverlay(vitrine);
   vitrine.querySelector(".overlay-scroll").scrollTop = 0;
   vitrine.querySelectorAll(".vcard").forEach(b =>
     b.addEventListener("click", () => openViewer(c.cards, +b.dataset.idx)));
 }
 
-/* ---- card viewer ---- */
 const viewer = document.getElementById("viewer");
 const flipCard = document.getElementById("flip-card");
 let viewerList = [], viewerIdx = 0;
@@ -373,8 +366,7 @@ let viewerList = [], viewerIdx = 0;
 function openViewer(list, idx) {
   viewerList = list;
   viewerIdx = idx;
-  anchorOverlay(viewer);
-  viewer.classList.remove("hidden");
+  openOverlay(viewer);
   showCard();
 }
 function showCard() {
@@ -415,7 +407,6 @@ function showCard() {
   } else chip.innerHTML = "";
   document.getElementById("viewer-prev").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
   document.getElementById("viewer-next").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
-  // preload neighbours
   for (const d of [-1, 1]) {
     const n = viewerList[(viewerIdx + d + viewerList.length) % viewerList.length];
     if (n) new Image().src = imgPath(n, "front");
@@ -432,7 +423,6 @@ document.getElementById("flip-btn").addEventListener("click", () => flipCard.cla
 document.getElementById("viewer-prev").addEventListener("click", () => stepCard(-1));
 document.getElementById("viewer-next").addEventListener("click", () => stepCard(1));
 
-/* ---- stamp album ---- */
 function renderAlbum(filter = "all") {
   const stamps = DATA.stamps
     .filter(s => filter === "all" || s.year === filter)
@@ -507,11 +497,10 @@ function openStampbox(s) {
       openViewer(ALL_CARDS, idx); 
     }
   }));
-  anchorOverlay(stampbox);
-  stampbox.classList.remove("hidden");
+  
+  openOverlay(stampbox);
 }
 
-/* ---- draw a card ---- */
 const draw = document.getElementById("draw");
 const drawCard = document.getElementById("draw-card");
 let drawn = null;
@@ -528,8 +517,7 @@ function dealCard() {
   }, 650);
 }
 document.getElementById("draw-btn").addEventListener("click", () => {
-  anchorOverlay(draw);
-  draw.classList.remove("hidden");
+  openOverlay(draw);
   dealCard();
 });
 document.getElementById("draw-again").addEventListener("click", dealCard);
@@ -540,10 +528,6 @@ document.getElementById("draw-open").addEventListener("click", () => {
 });
 drawCard.addEventListener("click", () => drawCard.classList.toggle("flipped"));
 
-/* ---- iframe embedding (stampoutwar.com/exhibition/) ----
-   Report our real height to the embedding page so the iframe can grow to fit
-   and the parent page becomes the only scroller (kills the double-scrollbar
-   freeze). The parent listens for this message and resizes the iframe. */
 const EMBEDDED = (() => { try { return window.self !== window.top; } catch { return true; } })();
 if (EMBEDDED) {
   document.documentElement.classList.add("embedded");
@@ -553,45 +537,59 @@ if (EMBEDDED) {
   window.addEventListener("load", postHeight);
 }
 
-/* In a full-height iframe there is no local viewport, so an overlay is placed
-   near the click (the only spot we know is on-screen) and the embedding page is
-   asked to scroll so the content sits a fixed gap below the viewport top. That
-   makes EVERY overlay open at the same vertical position with little empty
-   space above, regardless of where the visitor clicked. */
-const OVERLAY_TOP_GAP = 56; // px between viewport top and overlay content
 let lastPointerY = 0;
-let lastAnchorY = 0;
-window.addEventListener("pointerdown", e => { lastPointerY = e.pageY; }, true);
 
-function anchorOverlay(ov) {
-  if (!EMBEDDED) return;
-  const y = Math.max(72, Math.round(lastPointerY));
-  lastAnchorY = y;
-  ov.style.setProperty("--anchor-y", `${y}px`);
+// Track the user's scroll position strictly on the main exhibition view
+window.addEventListener("pointerdown", e => {
+  if (!document.documentElement.classList.contains("modal-active")) {
+    lastPointerY = e.pageY;
+  }
+}, true);
+
+function openOverlay(ov) {
+  // Store where the user clicked so we can return them to that visual region later
+  ov.dataset.returnY = lastPointerY;
   
-  // Force the iframe to stretch down significantly so overlays near the bottom edge aren't sliced off
-  document.body.style.paddingBottom = "1200px"; 
-  
-  window.parent.postMessage({ sowExhibitionScrollTo: y - OVERLAY_TOP_GAP }, "*");
+  // Hide the exhibition and show the modal
+  document.documentElement.classList.add("modal-active");
+  ov.classList.remove("hidden");
+
+  // Center the view on the modal
+  window.scrollTo(0, 0);
+  if (EMBEDDED) {
+    // Instruct the parent page to jump back to the top of the iframe to see the newly opened viewer
+    window.parent.postMessage({ sowExhibitionScrollTop: true }, "*");
+  }
 }
 
 function closeOverlay(ov, skipScroll = false) {
   ov.classList.add("hidden");
-  if (EMBEDDED) {
-    document.body.style.paddingBottom = ""; // Remove artificial expansion
+  
+  // Check if any other overlays are still open (e.g. transitioning from Stampbox directly to Viewer)
+  const anyOpen = document.querySelectorAll(".overlay:not(.hidden)").length > 0;
+  
+  if (!anyOpen) {
+    // Restore the exhibition view
+    document.documentElement.classList.remove("modal-active");
+    
     if (!skipScroll) {
-      // Restore the parent viewport roughly back to where they originally clicked
-      window.parent.postMessage({ sowExhibitionScrollTo: Math.max(0, lastAnchorY - OVERLAY_TOP_GAP - 150) }, "*");
+      const returnY = Number(ov.dataset.returnY) || 0;
+      // Scroll the local document back
+      window.scrollTo(0, Math.max(0, returnY - 150));
+      // Instruct the parent page to gracefully scroll back down to the row the user clicked
+      if (EMBEDDED) {
+        window.parent.postMessage({ sowExhibitionScrollTo: Math.max(0, returnY - 150) }, "*");
+      }
     }
   }
 }
 
-/* ---- overlay closing ---- */
 document.querySelectorAll(".overlay").forEach(ov => {
   ov.querySelectorAll("[data-close]").forEach(b =>
     b.addEventListener("click", () => closeOverlay(ov)));
   ov.addEventListener("click", e => { if (e.target === ov) closeOverlay(ov); });
 });
+
 document.addEventListener("keydown", e => {
   const open = [...document.querySelectorAll(".overlay:not(.hidden)")].pop();
   if (!open) return;
@@ -604,16 +602,6 @@ document.addEventListener("keydown", e => {
     }
   }
 });
-
-/* ---- page scroll lock while any overlay is open ---- */
-(function lockPageBehindOverlays() {
-  const overlays = document.querySelectorAll(".overlay");
-  const sync = () => document.documentElement.classList.toggle("overlay-open",
-    [...overlays].some(o => !o.classList.contains("hidden")));
-  const mo = new MutationObserver(sync);
-  overlays.forEach(o => mo.observe(o, { attributes: true, attributeFilter: ["class"] }));
-  sync();
-})();
 
 /* ---- go ---- */
 renderPassport();
