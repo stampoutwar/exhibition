@@ -554,7 +554,15 @@ if (EMBEDDED) {
   new ResizeObserver(() => postHeight()).observe(document.body);
   ["load", "pageshow", "resize", "orientationchange", "visibilitychange"]
     .forEach(ev => window.addEventListener(ev, () => postHeight(true)));
-  setInterval(() => postHeight(), 700);   // heartbeat: heals any dropped message
+  // Closed-loop heartbeat. Inside an iframe, window.innerHeight IS the iframe's
+  // real height, so we can detect that the parent never applied our last
+  // message (iOS drops them mid-scroll) and simply send it again. Without this
+  // check a dropped message left the iframe stuck: the height hadn't changed,
+  // so the reporter never spoke up again.
+  setInterval(() => {
+    const h = measure();
+    if (h !== lastPosted || Math.abs(window.innerHeight - h) > 2) postHeight(true);
+  }, 700);
 }
 
 /* ===== Focus Mode (view swap) =====
