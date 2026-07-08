@@ -589,15 +589,18 @@ window.addEventListener("pointerdown", e => {
    sent in the same beat would be clamped against the OLD page height, so it is
    deferred — and because iOS drops messages mid-scroll, it is retried a few
    times with the height re-announced first. Retries are idempotent (same
-   target position). Timers, not rAF: iOS pauses rAF in off-screen iframes. */
+   target position). Timers, not rAF: iOS pauses rAF in off-screen iframes.
+   CRUCIAL: a new scroll intent cancels every retry still pending from the
+   previous one — otherwise closing a stack of boxes quickly lets a stale
+   "scroll to top" retry fire AFTER the "return to your row" restore. */
+let scrollIntentTimers = [];
 function postAfterResize(msg) {
+  scrollIntentTimers.forEach(clearTimeout);
   forcePostHeight();   // announce the new height right now (layout is current)
-  for (const delay of [150, 700, 1500]) {
-    setTimeout(() => {
-      forcePostHeight();
-      window.parent.postMessage(msg, "*");
-    }, delay);
-  }
+  scrollIntentTimers = [150, 700, 1500].map(delay => setTimeout(() => {
+    forcePostHeight();
+    window.parent.postMessage(msg, "*");
+  }, delay));
 }
 
 function showTop() {
