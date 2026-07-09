@@ -22,8 +22,39 @@ for (const year of YEARS)
   for (const c of DATA.editions[year].countries)
     COUNTRY_INDEX.set(`${year}|${c.name}`, c);
 
+/* placeholder card face for cards whose scan is still to come (e.g. Suriname) */
+const NO_SCAN_IMG = "data:image/svg+xml," + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 983">
+    <rect width="1400" height="983" fill="#f7f2e6"/>
+    <rect x="40" y="40" width="1320" height="903" fill="none"
+      stroke="#b9b09a" stroke-width="5" stroke-dasharray="22 16" rx="14"/>
+    <text x="700" y="465" text-anchor="middle" font-family="Georgia,serif"
+      font-size="64" fill="#8d8674">Scan coming soon</text>
+    <text x="700" y="545" text-anchor="middle" font-family="Georgia,serif"
+      font-size="34" fill="#b0a890">the maxicard exists — its portrait is on the way</text>
+  </svg>`);
+
 const imgPath = (card, side, kind = "display") =>
-  `images/${card.year}/${kind === "thumb" ? "thumbs" : "display"}/${card[side]}.webp`;
+  card[side]
+    ? `images/${card.year}/${kind === "thumb" ? "thumbs" : "display"}/${card[side]}.webp`
+    : NO_SCAN_IMG;
+
+/* Latin plant names in italics. Genus list keeps it safe — an epithet is
+   italicised only after a known genus; authors ("L.", "Huds") and "sp." stay
+   roman, per botanical convention. Add new genera here as stamps arrive. */
+const LATIN_GENERA = [
+  "Adonis", "Balbisia", "Caltha", "Cassia", "Cattleya", "Chrysanthemum",
+  "Dendrobium", "Dillenia", "Ficaria", "Helianthus", "Hibiscus", "Hydrocieis",
+  "Hydrocleys", "Hypericum", "Impatiens", "Jasminum", "Leontodon",
+  "Limnocharis", "Lycopersicon", "Lysimachio", "Odontoglossum", "Plumeria",
+  "Pterocarpus", "Ranunculus", "Reichardia", "Rosa", "Schumacheria", "Senecio",
+  "Sophora", "Tribulus", "Viola",
+];
+// genus + up to two epithets; only the first may be capitalised (sheet style),
+// so author abbreviations ("Huds", "L.") stay roman
+const LATIN_RE = new RegExp(
+  `\\b(${LATIN_GENERA.join("|")})((?:\\s[A-Za-z][a-z-]{2,})?(?:\\s[a-z][a-z-]{2,})?)`, "g");
+const latinize = text => esc(text).replace(LATIN_RE, "<i>$1$2</i>");
 
 const esc = s => String(s ?? "").replace(/[&<>"]/g,
   ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
@@ -403,7 +434,7 @@ function showCard() {
       const cat = s ? s.cat : card.stampCat;
       return `<button data-img="${esc(img)}" title="Open this stamp in the album">
         <img src="${esc(img)}" alt="">
-        <span>🌻 ${esc(title)}${cat ? `<br>${esc(cat)}` : ""}</span>
+        <span>${latinize(title)}${cat ? `<br>${esc(cat)}` : ""}</span>
       </button>`;
     }).join("");
     chip.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
@@ -413,7 +444,7 @@ function showCard() {
   } else if (card.stamp) {
     // stamp known but no clean crop exists
     chip.innerHTML = `<button class="no-img" disabled>
-      <span>🌻 ${esc(card.stamp)}${card.stampYear ? ` (${esc(card.stampYear)})` : ""}${card.stampCat ? `<br>${esc(card.stampCat)}` : ""}</span>
+      <span>${latinize(card.stamp)}${card.stampYear ? ` (${esc(card.stampYear)})` : ""}${card.stampCat ? `<br>${esc(card.stampCat)}` : ""}</span>
     </button>`;
   } else chip.innerHTML = "";
   document.getElementById("viewer-prev").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
@@ -457,8 +488,8 @@ function renderAlbum(filter = "all") {
       ${stamps.map((s, i) => `
         <button class="stamp-cell" data-i="${i}">
           <span class="simgwrap"><img loading="lazy" src="${esc(s.img)}" alt="${esc(s.title)}"></span>
-          <span class="s-country">${s.flags.join(" ")} ${esc(s.countries.join(", "))}</span>
-          <span class="s-name"><b>${esc(s.title)}</b>${s.stampYear ? ` (${esc(s.stampYear)})` : ""}</span>
+          <span class="s-country">${s.flags.join(" ")} <b>${esc(s.countries.join(", "))}</b>${s.stampYear ? ` <span class="s-issue">(${esc(s.stampYear)})</span>` : ""}</span>
+          <span class="s-name"><b>${latinize(s.title)}</b></span>
           <span class="s-row">
             <span class="s-cat">${esc(s.cat || "")}</span>
             <span class="s-use">${s.cards.length} card${s.cards.length > 1 ? "s" : ""}</span>
@@ -491,10 +522,10 @@ function renderAlbum(filter = "all") {
 const stampbox = document.getElementById("stampbox");
 function openStampbox(s) {
   document.getElementById("stampbox-img").src = s.img;
-  document.getElementById("stampbox-title").textContent =
-    `${s.title}${s.stampYear ? ` (${s.stampYear})` : ""}`;
+  document.getElementById("stampbox-title").innerHTML =
+    `${latinize(s.title)}${s.stampYear ? ` (${esc(s.stampYear)})` : ""}`;
   document.getElementById("stampbox-sub").textContent =
-    [s.cat, `used in ${s.year} · ${editionName(s.year)}`].filter(Boolean).join(" · ");
+    [s.cat, `used in ${s.year}`].filter(Boolean).join(" · ");
   const holder = document.getElementById("stampbox-cards");
   const refs = [...s.cards].sort((a, b) => a.country.localeCompare(b.country)
     || a.id.localeCompare(b.id, undefined, { numeric: true }));
