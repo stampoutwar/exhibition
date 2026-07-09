@@ -70,7 +70,12 @@ const stripId = id => (id
 const shortId = card => stripId(card.id);
 
 const PASSPORT_TOTAL = [...COUNTRY_INDEX.keys()].length;
-let passport = new Set(JSON.parse(localStorage.getItem("sow-passport") || "[]"));
+/* Load the saved passport, dropping stamps for halls that no longer exist —
+   country renames or data corrections would otherwise leave orphaned entries
+   and nonsense like "66 of 65 halls visited". */
+let passport = new Set(JSON.parse(localStorage.getItem("sow-passport") || "[]")
+  .filter(k => COUNTRY_INDEX.has(k)));
+localStorage.setItem("sow-passport", JSON.stringify([...passport]));
 function stampPassport(year, country) {
   const key = `${year}|${country}`;
   if (passport.has(key)) return;
@@ -247,7 +252,9 @@ function renderLobby() {
         <div class="stat glass b"><b data-count="${s.stamps}">0</b><span>stamps</span></div>
         <div class="stat glass y"><b data-count="${s.towns}">0</b><span>postmark towns</span></div>
         <div class="stat glass b"><b data-count="${s.participants}">0</b><span>participants</span></div>
+        <div class="stat glass sold"><b data-count="${s.soldTotal}" data-prefix="$">0</b><span>raised for Ukraine</span></div>
       </div>
+      <p class="stats-note">Sold maxicards fund Ukrainian relief — all amounts in Canadian dollars.</p>
       <div class="scroll-down-arrow">
         <a href="#halls" class="arrow-link" title="Enter the exhibition">
           <span class="scroll-label">Start your visit</span>
@@ -285,12 +292,14 @@ function renderLobby() {
     </div>
   </section>`;
 
-  // count-up animation
+  // count-up animation (data-prefix e.g. "$"; large numbers get separators)
   view.querySelectorAll("[data-count]").forEach(el => {
-    const target = +el.dataset.count, t0 = performance.now(), dur = 1400;
+    const target = +el.dataset.count, prefix = el.dataset.prefix || "",
+          t0 = performance.now(), dur = 1400;
     (function tick(t) {
       const p = Math.min(1, (t - t0) / dur);
-      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      const val = Math.round(target * (1 - Math.pow(1 - p, 3)));
+      el.textContent = prefix + val.toLocaleString("en-CA");
       if (p < 1) requestAnimationFrame(tick);
     })(t0);
   });
@@ -388,9 +397,12 @@ function openVitrine(year, countryName) {
           <span class="vcard-img"><img loading="lazy"
             src="${imgPath(card, "front", "thumb")}"
             alt="Maxicard ${esc(card.id)}, ${esc(c.name)}"></span>
-          <span class="vlabel"><b>№ ${esc(shortId(card))}</b>
-            ${card.town ? ` · ${esc(card.town)}` : ""}
-            ${card.participant ? `<br><span class="hand">with the help of ${esc(card.participant)}</span>` : ""}
+          <span class="vlabel">
+            <span class="vlabel-row">
+              <span><b>№ ${esc(shortId(card))}</b>${card.town ? ` · ${esc(card.town)}` : ""}</span>
+              ${card.sold ? `<span class="sold-tag">Sold $${card.sold}</span>` : ""}
+            </span>
+            ${card.participant ? `<span class="hand">with the help of ${esc(card.participant)}</span>` : ""}
           </span>
         </button>`).join("")}
     </div>`;
@@ -447,6 +459,10 @@ function showCard() {
       <span>${latinize(card.stamp)}${card.stampYear ? ` (${esc(card.stampYear)})` : ""}${card.stampCat ? `<br>${esc(card.stampCat)}` : ""}</span>
     </button>`;
   } else chip.innerHTML = "";
+  // dealer's-mark for sold cards — the price is a donation to Ukrainian relief
+  document.getElementById("viewer-sold").innerHTML = card.sold
+    ? `<div class="sold-stamp">Sold · $${esc(card.sold)}<small>raised for Ukrainian relief</small></div>`
+    : "";
   document.getElementById("viewer-prev").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
   document.getElementById("viewer-next").style.visibility = viewerList.length > 1 ? "visible" : "hidden";
   for (const d of [-1, 1]) {
