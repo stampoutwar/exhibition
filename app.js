@@ -54,6 +54,16 @@ function stampPassport(year, country) {
       plq.insertAdjacentHTML("beforeend",
         `<span class="visited-mark fresh">VISITED<br>·SOW·</span>`);
   }
+  // ink the passport page too, if it is rendered (visiting via the passport
+  // must show the new stamp when the visitor returns to it)
+  const pp = [...document.querySelectorAll(".pp-stamp.blank")]
+    .find(b => b.dataset.year === String(year) && b.dataset.country === country);
+  if (pp) {
+    pp.classList.remove("blank");
+    pp.classList.add("visited");
+    pp.querySelector(".pp-date").textContent = `24 AUG ${year}`;
+    pp.title = `Visited — reopen ${country}`;
+  }
 }
 function renderPassport() {
   const el = document.getElementById("passport-count");
@@ -103,7 +113,8 @@ function openPassportBook() {
   document.getElementById("passport-pages").innerHTML = pages.join("");
   document.querySelectorAll(".pp-stamp").forEach(b =>
     b.addEventListener("click", () => {
-      closeOverlay(passportbox, true);
+      // do NOT close the passport: the vitrine stacks on top of it, so
+      // closing the vitrine brings the visitor back to their passport
       location.hash = `#/${b.dataset.year}`;
       openVitrine(b.dataset.year, b.dataset.country);
     }));
@@ -602,6 +613,16 @@ function postAfterResize(msg) {
     window.parent.postMessage(msg, "*");
   }, delay));
 }
+
+/* The visitor's own gesture always outranks the choreography: as soon as they
+   touch or wheel-scroll, all pending scroll retries are cancelled — otherwise
+   the 700/1500ms retries yank someone who has already started reading a tall
+   vitrine or the passport back to the top ("oscillating" on iOS). */
+["touchstart", "wheel"].forEach(ev =>
+  window.addEventListener(ev, () => {
+    scrollIntentTimers.forEach(clearTimeout);
+    scrollIntentTimers = [];
+  }, { capture: true, passive: true }));
 
 function showTop() {
   window.scrollTo(0, 0);
