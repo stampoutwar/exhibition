@@ -587,13 +587,14 @@ if (EMBEDDED) {
    last overlay restores the exhibition and returns the visitor to where they
    clicked. */
 const overlayStack = [];
-let lastPointerY = 0;   // where the visitor last clicked on the exhibition view
-let focusReturnY = 0;   // remembered when entering focus mode
+let lastPointerY = 0;    // where the visitor last clicked on the exhibition view
+let anyPointerY = 0;     // where they last clicked anywhere (incl. inside a box)
+let focusReturnY = 0;    // remembered when entering focus mode
 
-// Track clicks only on the main exhibition view (not inside a shadow box)
 window.addEventListener("pointerdown", e => {
+  anyPointerY = e.pageY;
   if (!document.documentElement.classList.contains("modal-active"))
-    lastPointerY = e.pageY;
+    lastPointerY = e.pageY;   // only clicks on the main exhibition view
 }, true);
 
 /* The parent resizes the iframe from our height messages. A scroll command
@@ -633,7 +634,11 @@ function openOverlay(ov) {
   const i = overlayStack.indexOf(ov);
   if (i >= 0) overlayStack.splice(i, 1);          // re-opening: move to top
   if (overlayStack.length) {
-    overlayStack[overlayStack.length - 1].classList.add("hidden");
+    const under = overlayStack[overlayStack.length - 1];
+    // remember where in the covered box the visitor clicked, so closing the
+    // new box returns them to that spot (passport page, vitrine card, …)
+    under.dataset.resumeY = anyPointerY;
+    under.classList.add("hidden");
   } else {
     focusReturnY = lastPointerY;                  // entering focus mode
     document.documentElement.classList.add("modal-active");
@@ -648,9 +653,13 @@ function closeOverlay(ov, skipScroll = false) {
   const i = overlayStack.indexOf(ov);
   if (i >= 0) overlayStack.splice(i, 1);
   if (overlayStack.length) {
-    // reveal the overlay underneath (e.g. viewer -> back to the vitrine)
-    overlayStack[overlayStack.length - 1].classList.remove("hidden");
-    showTop();
+    // reveal the overlay underneath (e.g. viewer -> back to the vitrine,
+    // vitrine -> back to the passport) at the spot the visitor left it
+    const under = overlayStack[overlayStack.length - 1];
+    under.classList.remove("hidden");
+    const y = Math.max(0, (Number(under.dataset.resumeY) || 0) - 150);
+    if (EMBEDDED) postAfterResize({ sowExhibitionScrollTo: y });
+    else window.scrollTo(0, y);
   } else {
     document.documentElement.classList.remove("modal-active");
     if (!skipScroll) {
