@@ -606,8 +606,10 @@ window.addEventListener("pointerdown", e => {
    previous one — otherwise closing a stack of boxes quickly lets a stale
    "scroll to top" retry fire AFTER the "return to your row" restore. */
 let scrollIntentTimers = [];
-function postAfterResize(msg) {
+let intentProtectedUntil = 0;   // position-restores survive incidental touches
+function postAfterResize(msg, protect = false) {
   scrollIntentTimers.forEach(clearTimeout);
+  intentProtectedUntil = protect ? Date.now() + 800 : 0;
   forcePostHeight();   // announce the new height right now (layout is current)
   scrollIntentTimers = [150, 700, 1500].map(delay => setTimeout(() => {
     forcePostHeight();
@@ -615,14 +617,19 @@ function postAfterResize(msg) {
   }, delay));
 }
 
-/* The visitor's own gesture always outranks the choreography: as soon as they
-   touch or wheel-scroll, all pending scroll retries are cancelled — otherwise
-   the 700/1500ms retries yank someone who has already started reading a tall
-   vitrine or the passport back to the top ("oscillating" on iOS). */
+/* The visitor's own gesture outranks the choreography: touching or
+   wheel-scrolling cancels pending scroll retries — otherwise the 700/1500ms
+   retries yank someone who has already started reading back to the top
+   ("oscillating" on iOS). Exception: a position-restore that was JUST issued
+   (e.g. by the tap that closed the box — real taps often end with a tiny
+   touchmove) is protected for 800ms so the visitor's own closing gesture
+   cannot cancel their return trip. */
 ["touchstart", "wheel"].forEach(ev =>
   window.addEventListener(ev, () => {
-    scrollIntentTimers.forEach(clearTimeout);
-    scrollIntentTimers = [];
+    if (Date.now() >= intentProtectedUntil) {
+      scrollIntentTimers.forEach(clearTimeout);
+      scrollIntentTimers = [];
+    }
   }, { capture: true, passive: true }));
 
 function showTop() {
@@ -658,7 +665,7 @@ function closeOverlay(ov, skipScroll = false) {
     const under = overlayStack[overlayStack.length - 1];
     under.classList.remove("hidden");
     const y = Math.max(0, (Number(under.dataset.resumeY) || 0) - 150);
-    if (EMBEDDED) postAfterResize({ sowExhibitionScrollTo: y });
+    if (EMBEDDED) postAfterResize({ sowExhibitionScrollTo: y }, true);
     else window.scrollTo(0, y);
   } else {
     document.documentElement.classList.remove("modal-active");
@@ -669,7 +676,7 @@ function closeOverlay(ov, skipScroll = false) {
         // applied the new height, the iframe doc is briefly scrollable, and
         // iOS WebKit keeps that internal offset forever (content shifted up,
         // blank band at the bottom). The parent does the scrolling instead.
-        postAfterResize({ sowExhibitionScrollTo: y });
+        postAfterResize({ sowExhibitionScrollTo: y }, true);
       } else {
         window.scrollTo(0, y);   // standalone: back to the spot they clicked
       }
