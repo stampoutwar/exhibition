@@ -282,11 +282,59 @@ a { color: var(--blue); }
   font-size: clamp(2.25rem, 3vw, 3rem); line-height: 1.1; margin-bottom: .35rem;
   color: var(--blue);
 }
-.stat.glass.sold { border-top: 4px solid #d24a3b; }
+.stat.glass.sold { border-top: 4px solid #d24a3b; border-bottom: none; border-left: none; border-right: none; cursor: pointer; font: inherit; }
 .stat.glass.sold b { color: #c14538; }
 .stats-note {
   text-align: center; margin: .9rem auto 0; font-size: .82rem;
-  color: #78716c; max-width: 40rem;
+  color: #78716c; max-width: 44rem;
+}
+.linklike {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--blue); text-decoration: underline; cursor: pointer;
+}
+
+/* ===== The Accounts (finance ledger) ===== */
+.ledger-book {
+  max-width: 880px; margin: 0 auto; background: #fbf7ec;
+  background-image: radial-gradient(rgba(20, 38, 79, .05) 1px, transparent 1px);
+  background-size: 18px 18px;
+  border-radius: 14px; padding: 1.8rem clamp(1.2rem, 4vw, 2.6rem) 2.2rem;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
+}
+.ledger-book h2 { font-family: var(--serif); margin: 0 0 .5rem; color: var(--ink); }
+.ledger-lead { color: var(--ink-soft); font-size: .95rem; margin: 0 0 1.2rem; }
+.ledger-scroll { overflow-x: auto; }
+.ledger-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+/* edition cell: fixed-width year so the names line up, no mid-name wrapping */
+.ledger-table td.ed { white-space: nowrap; padding-right: 1.2rem; }
+.ledger-table .ed-year {
+  display: inline-block; width: 3.4em; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-table .ed-name { color: var(--ink-soft); }
+.ledger-table th, .ledger-table td {
+  padding: .5rem .6rem; text-align: right; color: var(--ink);
+  border-bottom: 1px dashed rgba(20, 38, 79, .22);
+}
+.ledger-table th:first-child, .ledger-table td:first-child { text-align: left; }
+.ledger-table th {
+  font-size: .74rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-soft); border-bottom: 2px solid rgba(20, 38, 79, .35);
+}
+.ledger-table td.net { font-weight: 700; white-space: nowrap; }
+.ledger-table .neg { color: #b3402f; }
+.ledger-table em {
+  display: block; white-space: normal; margin-left: auto;
+  max-width: 12em; color: var(--ink-soft); font-size: .8rem; font-weight: 400;
+}
+.ledger-table tfoot td {
+  border-bottom: none; border-top: 3px double rgba(20, 38, 79, .5);
+  font-weight: 700; padding-top: .7rem;
+}
+.ledger-table tfoot td.net { color: #b3402f; font-size: 1.05rem; }
+@media (max-width: 560px) {
+  .ledger-table { font-size: .8rem; }
+  .ledger-table th, .ledger-table td { padding: .4rem .3rem; }
 }
 .stat.glass.y b { color: #1c1917; }
 .stat span {
@@ -322,10 +370,24 @@ a { color: var(--blue); }
   display: flex; align-items: center; justify-content: center; text-align: center;
   transform: rotate(10deg);
 }
+/* album door: same flag colours as the year doors, with a little fan of
+   perforated stamps from the collection */
 .door-art.album-art {
-  background: repeating-linear-gradient(45deg, var(--paper-dark) 0 14px, #fff 14px 28px);
+  display: flex; align-items: center; gap: .45rem; padding-left: 1.1rem;
 }
-.door-art.album-art .postmark-deco { border-color: var(--postmark); color: var(--postmark); }
+.mini-stamp {
+  width: 46px; height: 54px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; line-height: 1;
+  transform: rotate(var(--r, 0deg));
+  filter: drop-shadow(0 3px 6px rgba(0, 20, 60, .35));
+  -webkit-mask:
+    radial-gradient(circle 3px, transparent 97%, #000) round 0 0 / 10px 10px,
+    linear-gradient(#000, #000) 5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat;
+  mask:
+    radial-gradient(circle 3px, transparent 97%, #000) round 0 0 / 10px 10px,
+    linear-gradient(#000, #000) 5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat;
+}
 /* door bodies align across the row: 2 lines reserved for the title,
    2 for the meta, flags pinned to the bottom */
 .door-body { padding: .85rem 1rem 1rem; display: flex; flex-direction: column; flex: 1; }
@@ -641,20 +703,23 @@ html.embedded .stampbox-frame img { max-height: none; }
   border-radius: 4px; margin: 8px; overflow: hidden;
 }
 .draw-cardback-art .half {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  text-align: center; line-height: 1.05;
+  flex: 1; display: flex; justify-content: center;
+  text-align: center; line-height: 1;
   font-family: var(--serif); font-weight: 900; text-transform: uppercase;
   letter-spacing: .22em; font-size: clamp(1.6rem, 6vw, 2.8rem);
+  white-space: nowrap;
 }
-/* blue field, yellow lettering (Ukrainian-flag scheme) */
+/* blue field, yellow lettering — the words hug the flag's seam */
 .draw-cardback-art .sky {
   background: var(--blue); color: var(--yellow);
   text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  align-items: flex-end; padding-bottom: .22em;
 }
 /* golden field, blue lettering */
 .draw-cardback-art .field {
   background: var(--yellow); color: var(--blue);
   text-shadow: 0 1px 2px rgba(255, 255, 255, .45);
+  align-items: flex-start; padding-top: .22em;
 }
 .draw-actions { display: flex; gap: .7rem; justify-content: center; }
 

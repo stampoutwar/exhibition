@@ -252,9 +252,12 @@ function renderLobby() {
         <div class="stat glass b"><b data-count="${s.stamps}">0</b><span>stamps</span></div>
         <div class="stat glass y"><b data-count="${s.towns}">0</b><span>postmark towns</span></div>
         <div class="stat glass b"><b data-count="${s.participants}">0</b><span>participants</span></div>
-        <div class="stat glass sold"><b data-count="${s.soldTotal}" data-prefix="$">0</b><span>raised for Ukraine</span></div>
+        <button class="stat glass sold" id="stat-net" title="See the accounts">
+          <b data-count="${s.netProceeds}" data-prefix="$">0</b><span>net proceeds for Ukraine</span>
+        </button>
       </div>
-      <p class="stats-note">Sold maxicards fund Ukrainian relief — all amounts in Canadian dollars.</p>
+      <p class="stats-note">Net proceeds = sales + donations − production costs, donated to the
+        Canada-Ukraine Foundation · all amounts in Canadian dollars · <button class="linklike" id="stats-accounts">see the accounts</button></p>
       <div class="scroll-down-arrow">
         <a href="#halls" class="arrow-link" title="Enter the exhibition">
           <span class="scroll-label">Start your visit</span>
@@ -272,7 +275,12 @@ function renderLobby() {
     <div class="doors">
       ${doors}
       <a class="door album-door" href="#/album">
-        <div class="door-art album-art"><div class="postmark-deco">97<br>STAMPS</div></div>
+        <div class="door-art album-art">
+          <span class="mini-stamp" style="--r:-9deg">🌻</span>
+          <span class="mini-stamp" style="--r:2deg">🕊️</span>
+          <span class="mini-stamp" style="--r:11deg">🌼</span>
+          <div class="postmark-deco">${s.stamps}<br>STAMPS</div>
+        </div>
         <div class="door-body">
           <h3>The Stamp Album</h3>
           <p>Every sunflower &amp; solidarity stamp</p>
@@ -286,9 +294,10 @@ function renderLobby() {
       <p>A maxicard reaches <b>maximum concordance</b> when three things agree:
         the picture on the postcard, the stamp on the picture side, and the postmark that cancels it.</p>
       <p class="hand">Here: a field photographed in Prince Edward Island, Canada — a sunflower or
-        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend could stamp it.</p>
-      <p>Each card becomes a permanent historical record of solidarity. The originals are auctioned
-        to support Ukrainian refugee relief.</p>
+        yellow-flower stamp — and a cancellation dated 24 August, wherever in the world a friend
+        could have it postmarked.</p>
+      <p>After becoming a permanent historical record of solidarity, each card is auctioned
+        to support Ukrainian relief.</p>
     </div>
   </section>`;
 
@@ -305,6 +314,10 @@ function renderLobby() {
   });
 
   // smooth-scroll arrow (plain hash hrefs would fight the router)
+  // the net-proceeds stat and its footnote open the accounts panel
+  view.querySelector("#stat-net").addEventListener("click", openLedger);
+  view.querySelector("#stats-accounts").addEventListener("click", openLedger);
+
   view.querySelector(".arrow-link").addEventListener("click", e => {
     e.preventDefault();
     document.getElementById("halls").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -535,6 +548,40 @@ function renderAlbum(filter = "all") {
     b.addEventListener("click", () => openStampbox(stamps[+b.dataset.i])));
 }
 
+/* ---- the accounts (finance transparency) ---- */
+const ledger = document.getElementById("ledger");
+const money = v => {
+  if (v === "" || v == null) return "—";
+  const n = +v;
+  const str = "$" + Math.abs(n).toLocaleString("en-CA",
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n < 0 ? `<span class="neg">(${str})</span>` : str;
+};
+function openLedger() {
+  const rows = DATA.finance || [];
+  const total = DATA.stats.netProceeds;
+  document.getElementById("ledger-table").innerHTML = `
+    <div class="ledger-scroll"><table class="ledger-table">
+      <thead><tr>
+        <th>Edition</th><th>Sales</th><th>Donations</th><th>Expenses</th><th>Net proceeds</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td class="ed"><span class="ed-year">${esc(r.year)}</span><span class="ed-name">${esc(editionName(r.year))}</span></td>
+          <td>${money(r.sale_revenue)}</td>
+          <td>${money(r.donations_received)}</td>
+          <td>${money(r.expenses)}</td>
+          <td class="net">${r.net_proceeds ? money(r.net_proceeds) : ""}${r.note ? `${r.net_proceeds ? "<br>" : ""}<em>${esc(r.note)}</em>` : ""}</td>
+        </tr>`).join("")}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="4">Donated to the Canada-Ukraine Foundation</td>
+        <td class="net">${money(total)}</td>
+      </tr></tfoot>
+    </table></div>`;
+  openOverlay(ledger);
+}
+
 const stampbox = document.getElementById("stampbox");
 function openStampbox(s) {
   document.getElementById("stampbox-img").src = s.img;
@@ -751,5 +798,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ---- go ---- */
+document.querySelector(".draw-hint").textContent =
+  `From ${DATA.stats.cards} maxicards, fate deals you…`;
 renderPassport();
 route();
