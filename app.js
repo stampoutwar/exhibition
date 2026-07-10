@@ -248,10 +248,9 @@ function renderLobby() {
       <div class="fan">${fanHtml}</div>
       <div class="stats">
         <div class="stat glass b"><b data-count="${s.cards}">0</b><span>maxicards</span></div>
-        <div class="stat glass y"><b data-count="${s.countries}">0</b><span>countries</span></div>
-        <div class="stat glass b"><b data-count="${s.stamps}">0</b><span>stamps</span></div>
-        <div class="stat glass y"><b data-count="${s.towns}">0</b><span>postmark towns</span></div>
-        <div class="stat glass b"><b data-count="${s.participants}">0</b><span>participants</span></div>
+        <div class="stat glass y"><b data-count="${s.participants}">0</b><span>participants</span></div>
+        <div class="stat glass b"><b data-count="${s.countries}">0</b><span>countries</span></div>
+        <div class="stat glass y"><b data-count="${s.stamps}">0</b><span>stamps</span></div>
         <button class="stat glass sold" id="stat-net" title="See the accounts">
           <b data-count="${s.netProceeds}" data-prefix="$">0</b><span>net proceeds for Ukraine</span>
         </button>
