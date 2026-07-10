@@ -320,7 +320,15 @@ function renderLobby() {
 
   view.querySelector(".arrow-link").addEventListener("click", e => {
     e.preventDefault();
-    document.getElementById("halls").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (EMBEDDED) {
+      // inside the iframe the document cannot scroll — the embedding page
+      // owns the scrollbar, so ask it to move (protected against the tap's
+      // own touchmove cancelling it; measured fresh at each retry)
+      postAfterResize(() => ({ sowExhibitionScrollTo: Math.max(0, Math.round(
+        document.getElementById("halls").getBoundingClientRect().top + window.scrollY - 12)) }), true);
+    } else {
+      document.getElementById("halls").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   // fan card clicks -> viewer over the whole collection
@@ -701,13 +709,16 @@ window.addEventListener("pointerdown", e => {
    "scroll to top" retry fire AFTER the "return to your row" restore. */
 let scrollIntentTimers = [];
 let intentProtectedUntil = 0;   // position-restores survive incidental touches
+/* msg may be a function: it is re-evaluated at each retry, so targets that
+   depend on layout (e.g. the halls section position) are measured fresh —
+   a tap during initial load would otherwise send a stale offset. */
 function postAfterResize(msg, protect = false) {
   scrollIntentTimers.forEach(clearTimeout);
   intentProtectedUntil = protect ? Date.now() + 800 : 0;
   forcePostHeight();   // announce the new height right now (layout is current)
   scrollIntentTimers = [150, 700, 1500].map(delay => setTimeout(() => {
     forcePostHeight();
-    window.parent.postMessage(msg, "*");
+    window.parent.postMessage(typeof msg === "function" ? msg() : msg, "*");
   }, delay));
 }
 

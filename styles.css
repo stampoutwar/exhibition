@@ -381,12 +381,19 @@ a { color: var(--blue); }
   font-size: 24px; line-height: 1;
   transform: rotate(var(--r, 0deg));
   filter: drop-shadow(0 3px 6px rgba(0, 20, 60, .35));
+  /* real perforation: a scalloped edge of tangent semicircular teeth
+     (filled circles along the rim + a solid interior), not punched holes */
+  --tooth: 4px;
   -webkit-mask:
-    radial-gradient(circle 3px, transparent 97%, #000) round 0 0 / 10px 10px,
-    linear-gradient(#000, #000) 5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat;
+    radial-gradient(circle var(--tooth) at var(--tooth) var(--tooth), #000 97%, transparent)
+      round 0 0 / calc(var(--tooth) * 2) calc(var(--tooth) * 2),
+    linear-gradient(#000, #000)
+      var(--tooth) var(--tooth) / calc(100% - var(--tooth) * 2) calc(100% - var(--tooth) * 2) no-repeat;
   mask:
-    radial-gradient(circle 3px, transparent 97%, #000) round 0 0 / 10px 10px,
-    linear-gradient(#000, #000) 5px 5px / calc(100% - 10px) calc(100% - 10px) no-repeat;
+    radial-gradient(circle var(--tooth) at var(--tooth) var(--tooth), #000 97%, transparent)
+      round 0 0 / calc(var(--tooth) * 2) calc(var(--tooth) * 2),
+    linear-gradient(#000, #000)
+      var(--tooth) var(--tooth) / calc(100% - var(--tooth) * 2) calc(100% - var(--tooth) * 2) no-repeat;
 }
 /* door bodies align across the row: 2 lines reserved for the title,
    2 for the meta, flags pinned to the bottom */
