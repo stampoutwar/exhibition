@@ -511,7 +511,7 @@ function renderAlbum(filter = "all") {
     <p class="kicker">The philatelic record</p>
     <h2>The Stamp Album</h2>
     <p class="lead">Every stamp used in the project — sunflowers, yellow flowers and solidarity
-      issues — cropped from the maxicards together with their cancellation marks, arranged
+      issues — cropped from the maxicards and arranged
       alphabetically by country. Click a stamp to see which cards carry it.</p>
     <div class="chips">
       <button data-f="all" class="${filter === "all" ? "active" : ""}">All ${DATA.stamps.length}</button>
