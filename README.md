@@ -13,6 +13,7 @@ and a visitor passport that collects postmarks as you explore.
 | `styles.css`, `app.js` | Styling and behaviour |
 | `sheets/cards.csv` | **Source of truth** — one row per maxicard (open in Excel/Numbers) |
 | `sheets/stamps.csv` | **Source of truth** — one row per stamp crop image |
+| `sheets/finance.csv` | Per-edition accounts (sales, donations, expenses, net proceeds) — feeds the lobby stat and "The Accounts" panel |
 | `build_manifest.py` | Reads the sheets → regenerates `data.js` + `metadata.json`, verifying every image |
 | `data.js` | Generated manifest read by the app — do not edit by hand |
 | `metadata.json` | Generated JSON mirror of the sheets — do not edit by hand |
@@ -48,7 +49,8 @@ filename is wrong, so the site never ships a broken image.
 | `town`, `participant` | postmark town + who had it cancelled (either may be blank) |
 | `stamp`, `stamp_year`, `stamp_cat` | the stamp label shown on the card |
 | `stamp_files` | crop filename(s) in `images/stamps/`, **separated by `;`** for multi-stamp cards |
-| `front`, `back` | image file stems (without `.webp`) in `images/<year>/display` and `/thumbs` |
+| `front`, `back` | image file stems (without `.webp`) in `images/<year>/display` and `/thumbs`; leave blank if the scan is pending (a placeholder shows) |
+| `sold_price` | sale price in Canadian dollars, blank if unsold — shows a red "Sold" mark and feeds the lobby total |
 
 **`sheets/stamps.csv`** — one row per stamp crop image (the album):
 
@@ -79,25 +81,57 @@ padding. Closing the box restores the exhibition and returns the visitor to
 the row they clicked.
 
 Use this in a Custom HTML block (the snippet resizes the iframe and performs
-the scroll choreography):
+the scroll choreography). Scroll requests are held as a "pending" intent and
+applied only once the page layout has settled after the resize — applying them
+immediately clamps against the not-yet-grown page on iOS and strands the
+visitor partway (or at the top):
 
 ```html
 <iframe id="sow-exhibition" src="https://stampoutwar.github.io/exhibition/exhibition.html"
         width="100%" height="1600" style="border:none;display:block" scrolling="no"></iframe>
 <script>
-var sowFrame = document.getElementById("sow-exhibition");
-window.addEventListener("message", function (e) {
-  if (e.origin !== "https://stampoutwar.github.io" || !e.data) return;
-  if (e.data.sowExhibitionHeight) sowFrame.style.height = e.data.sowExhibitionHeight + "px";
-  if (e.data.sowExhibitionScrollTop) window.scrollTo(0, sowFrame.offsetTop);
-  if (e.data.sowExhibitionScrollTo != null)
-    window.scrollTo(0, sowFrame.offsetTop + e.data.sowExhibitionScrollTo);
-});
+(function () {
+  var frame = document.getElementById("sow-exhibition");
+  var pending = null, pendingSetAt = 0, protectedUntil = 0, lastHeightAt = 0, lastMax = -1, stable = 0;
+  function maxScroll() { return Math.max(0, document.documentElement.scrollHeight - window.innerHeight); }
+  function tryPending() {
+    if (pending === null) return;
+    var max = maxScroll();
+    stable = (max === lastMax) ? stable + 1 : 0;
+    lastMax = max;
+    /* settled = the layout stopped moving AND a height arrived for this intent */
+    var settled = stable >= 2 && lastHeightAt >= pendingSetAt - 1000;
+    if (pending <= max + 2 || settled || Date.now() - pendingSetAt > 4000) {
+      window.scrollTo(0, Math.min(pending, max));
+      pending = null;
+    }
+  }
+  setInterval(tryPending, 120);
+  /* the visitor's own scrolling cancels a pending intent — except a
+     position-restore that was JUST issued (real taps end with tiny touchmoves) */
+  ["wheel", "touchmove"].forEach(function (ev) {
+    window.addEventListener(ev, function () {
+      if (Date.now() >= protectedUntil) pending = null;
+    }, { passive: true });
+  });
+  window.addEventListener("message", function (e) {
+    if (e.origin !== "https://stampoutwar.github.io" || !e.data) return;
+    if (e.data.sowExhibitionHeight) {
+      frame.style.height = e.data.sowExhibitionHeight + "px";
+      lastHeightAt = Date.now(); tryPending();
+    }
+    if (e.data.sowExhibitionScrollTop) {
+      pending = frame.offsetTop; pendingSetAt = Date.now();
+      protectedUntil = 0; stable = 0; tryPending();
+    }
+    if (e.data.sowExhibitionScrollTo != null) {
+      pending = frame.offsetTop + e.data.sowExhibitionScrollTo; pendingSetAt = Date.now();
+      protectedUntil = Date.now() + 800; stable = 0; tryPending();
+    }
+  });
+})();
 </script>
 ```
-
-> The `sowExhibitionScrollTo` line is what standardizes overlay position — make
-> sure it is present in the WordPress embed after this update.
 
 ## Publish
 
