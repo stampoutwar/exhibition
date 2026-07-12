@@ -9,13 +9,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,900;1,500;1,600&family=Inter:wght@300;400;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <!-- bump ?v= on every deploy so cached copies (esp. iOS Safari) are bypassed -->
-<link rel="stylesheet" href="styles.css?v=20260712">
+<link rel="stylesheet" href="styles.css?v=20260712c">
 <link rel="icon" type="image/png" href="media/sow-icon.png">
 </head>
 <body>
 
 <nav id="topbar">
-  <a href="https://stampoutwar.com/" class="brand" title="Stamp Out War — project homepage">
+  <!-- target=_top: inside the iframe embed this must navigate the whole
+       browser tab to the homepage, not the iframe itself -->
+  <a href="https://stampoutwar.com/" target="_top" class="brand" title="Stamp Out War — project homepage">
     <img class="brand-icon" src="media/sow-icon.png" alt="Stamp Out War dove">
     <span class="brand-name"><span>Stamp</span> <span>Out</span> <span>War</span></span>
   </a>
@@ -33,7 +35,7 @@
 <main id="view"><!-- views rendered here --></main>
 
 <footer id="footer">
-  <p>An interactive exhibition of the <a href="https://stampoutwar.com/" target="_blank" rel="noopener">Stamp Out War</a> project.
+  <p>An interactive exhibition of the <a href="https://stampoutwar.com/" target="_top">Stamp Out War</a> project.
   Maxicard auctions support Ukrainian relief. 🇺🇦</p>
 </footer>
 
@@ -137,7 +139,7 @@
   </div>
 </div>
 
-<script src="data.js?v=20260712"></script>
-<script src="app.js?v=20260712"></script>
+<script src="data.js?v=20260712c"></script>
+<script src="app.js?v=20260712c"></script>
 </body>
 </html>
